@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  SHOP_OWNER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  CANCELLED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ShopApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  passwordHash     String
+  name             String
+  phone            String?
+  role             Role
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  shop          Shop?
+  bookings      Booking[]
+  reviews       Review[]
+  notifications Notification[]
+}
+
+model Shop {
+  id               String             @id @default(cuid())
+  owner            User               @relation(fields: [ownerId], references: [id])
+  ownerId          String             @unique
+  name             String
+  description      String?
+  categories       String[]
+  logoUrl          String?
+  address          String
+  latitude         Float
+  longitude        Float
+  phone            String?
+  whatsapp         String?
+  email            String?
+  website          String?
+  openingHours     Json?
+  yearsExperience  Int?
+  certifications   String?
+  isVerified       Boolean            @default(false)
+  approvalStatus   ShopApprovalStatus @default(APPROVED)
+  approvalDeadline DateTime?
+  moderationNote   String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  photos   ShopPhoto[]
+  services Service[]
+  bookings Booking[]
+  reviews  Review[]
+
+  @@index([categories])
+}
+
+model ShopPhoto {
+  id        String   @id @default(cuid())
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  url       String
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id        String @id @default(cuid())
+  shop      Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId    String
+  name      String
+  priceFrom Float?
+}
+
+model Booking {
+  id                 String        @id @default(cuid())
+  shop               Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId             String
+  customer           User          @relation(fields: [customerId], references: [id])
+  customerId         String
+  vehicleType        String
+  problemDescription String
+  preferredDate      DateTime
+  preferredTime      String
+  photoUrls          String[]
+  status             BookingStatus @default(PENDING)
+  completionSummary  String?
+  amountCharged      Float?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  review Review?
+
+  @@index([shopId])
+  @@index([customerId])
+}
+
+model Review {
+  id                 String       @id @default(cuid())
+  shop               Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopId             String
+  customer           User         @relation(fields: [customerId], references: [id])
+  customerId         String
+  booking            Booking?     @relation(fields: [bookingId], references: [id])
+  bookingId          String?      @unique
+  qualityRating      Int
+  priceRating        Int
+  speedRating        Int
+  friendlinessRating Int
+  overallRating      Int
+  comment            String?
+  status             ReviewStatus @default(APPROVED)
+  createdAt          DateTime     @default(now())
+
+  @@index([shopId])
+}
+
+model Notification {
+  id               String   @id @default(cuid())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  message          String
+  type             String
+  relatedBookingId String?
+  isRead           Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+}
