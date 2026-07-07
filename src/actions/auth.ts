@@ -1,8 +1,8 @@
 "use server";
 
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signUpSchema } from "@/lib/validations";
+import { hashPassword } from "@/lib/passwordHash";
 
 export interface SignUpState {
   error?: string;
@@ -32,7 +32,7 @@ export async function signUpAction(
     return { error: "An account with this email already exists" };
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await hashPassword(password);
 
   await prisma.user.create({
     data: { name, email, phone, passwordHash, role },

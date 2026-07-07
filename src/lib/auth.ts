@@ -1,8 +1,8 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { verifyTotpCode } from "@/lib/totp";
+import { verifyPassword } from "@/lib/passwordHash";
 
 class TwoFactorRequiredError extends CredentialsSignin {
   code = "two_factor_required";
@@ -31,7 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;
 
-        const valid = await bcrypt.compare(password, user.passwordHash);
+        const valid = await verifyPassword(password, user.passwordHash);
         if (!valid) return null;
 
         if (user.role === "ADMIN" && user.twoFactorEnabled) {
